@@ -7,8 +7,8 @@ var cheerio = require('cheerio')
   , request = require('request')
   , semester = process.env.SEMESTER
   , year = process.env.YEAR
-  , casUsername = process.env.USERNAME
-  , casPassword = process.env.PASSWORD;
+  , casUsername = process.env.CAS_USERNAME
+  , casPassword = process.env.CAS_PASSWORD;
 
 
 
