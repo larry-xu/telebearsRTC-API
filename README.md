@@ -15,4 +15,4 @@ Technologies Used
 - **CSS Framework**: ZURB Foundation
 - **Web Scrapers**: cheerio and request
 
-Hosted on AppFog (because Heroku and Openshift were causing problems with outbound https requests)
+Hosted on Microsoft Azure (because Heroku and Openshift were having problems with outbound https requests to Cal's server for some reason)
