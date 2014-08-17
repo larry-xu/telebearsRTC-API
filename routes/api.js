@@ -6,7 +6,9 @@
 var cheerio = require('cheerio')
   , request = require('request')
   , semester = process.env.SEMESTER
-  , year = process.env.YEAR;
+  , year = process.env.YEAR
+  , casUsername = process.env.USERNAME
+  , casPassword = process.env.PASSWORD;
 
 
 
@@ -86,31 +88,93 @@ exports.enrollment = function(req, res) {
 // queries telebears.berkeley.edu with ccn parameter and parses result
 // returns an object containing enrollment data
 exports.loadEnrollmentData = function(ccn,callback) {
-  request.post('https://telebears.berkeley.edu/enrollment-osoc/osc',
-    {form:{
-      _InField1:'RESTRIC',
-      _InField2: ccn,
-      _InField3: year
-    }},
+  var url = 'https://telebears.berkeley.edu/enrollment-osoc/osc';
+  request(
+    {
+      url: url,
+      qs: {
+        _InField1:'RESTRIC',
+        _InField2: ccn,
+        _InField3: year
+      },
+      headers: {
+        'Referer': 'http://osoc.berkeley.edu/OSOC/osoc?p_term=FL&x=0&p_classif=--+Choose+a+Course+Classification+--&p_deptname=--+Choose+a+Department+Name+--&p_presuf=--+Choose+a+Course+Prefix%2fSuffix+--&y=0'
+      },
+      jar: true
+    },
     function(error, res, body) {
     if (!error && res.statusCode == 200) {
-      var $ = cheerio.load(body);
-      var divText = $('blockquote:first-of-type div.layout-div').text();
-      divText = divText.replace(/(\r\n|\n|\r)/gm,"");
-      divText = divText.replace(/\s+/g," ");
-      divText = divText.substring(1);
-      var textArray = divText.split(" ");
-      var enrollData = {};
-      enrollData.ccn = parseInt(ccn,10);
-      enrollData.enroll = parseInt(textArray[0],10);
-      enrollData.enrollLimit = parseInt(textArray[8],10);
-      if(textArray[21] != null) {
-        enrollData.waitlist = parseInt(textArray[10],10);
-        enrollData.waitlistLimit = parseInt(textArray[21]);
+      if(res.request.host == 'auth.berkeley.edu') {
+        console.log('auth');
+        exports.casAuth(function(error) {
+          if(!error)
+            exports.loadEnrollmentData(ccn, callback);
+          else
+            console.error(error);
+        });
       }
-      callback(enrollData);
+      else {
+        var $ = cheerio.load(body);
+        var divText = $('blockquote:first-of-type div.layout-div').text();
+        divText = divText.replace(/(\r\n|\n|\r)/gm,"");
+        divText = divText.replace(/\s+/g," ");
+        divText = divText.substring(1);
+        var textArray = divText.split(" ");
+        var enrollData = {};
+        enrollData.ccn = parseInt(ccn,10);
+        enrollData.enroll = parseInt(textArray[0],10);
+        enrollData.enrollLimit = parseInt(textArray[8],10);
+        if(textArray[21] != null) {
+          enrollData.waitlist = parseInt(textArray[10],10);
+          enrollData.waitlistLimit = parseInt(textArray[21]);
+        }
+        callback(enrollData);
+      }
     }
-    else
-      console.log('Error: ' + error);
+    else {
+      console.error(error);
+    }
   })
+}
+
+// authenticate with CAS on server startup
+exports.casAuth = function(next) {
+  var uri = 'https://auth.berkeley.edu/cas/login';
+  request(
+    {
+      url: uri,
+      jar: true
+    },
+    function(error, res, body) {
+      if (!error && res.statusCode == 200) {
+        var $ = cheerio.load(body);
+        var lt = $('input[name="lt"]').val();
+        request(
+          {
+            url: uri,
+            method: 'POST',
+            form: {
+              username: casUsername,
+              password: casPassword,
+              lt: lt,
+              execution: 'e1s1',
+              _eventId: 'submit'
+            },
+            followAllRedirects: true,
+            jar: true
+          },
+          function(error, res, body) {
+            if (!error && res.statusCode == 200) {
+              next();
+            }
+            else {
+              next(error);
+            }
+          }
+        );
+      } else {
+        next(error);
+      }
+    }
+  );
 }

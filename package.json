@@ -6,11 +6,12 @@
     "start": "node app.js"
   },
   "dependencies": {
+    "cheerio": "*",
     "express": "3.3.4",
     "jade": "*",
-    "stylus": "*",
     "mongojs": "*",
-    "cheerio": "*",
-    "request": "*"
+    "request": "*",
+    "stylus": "*",
+    "tough-cookie": "^0.12.1"
   }
 }

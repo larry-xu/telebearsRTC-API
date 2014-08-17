@@ -6,7 +6,8 @@
 var express = require('express')
   , routes = require('./routes/routes')
   , http = require('http')
-  , path = require('path');
+  , path = require('path')
+  , api = require('./routes/api');
 
 var app = express();
 
@@ -29,8 +30,8 @@ if ('development' == app.get('env')) {
 }
 
 // Routes
-app.get('/api/sections/:id/:course', require('./routes/api').sections);
-app.get('/api/enrollment/:ccn', require('./routes/api').enrollment);
+app.get('/api/sections/:id/:course', api.sections);
+app.get('/api/enrollment/:ccn', api.enrollment);
 app.get('/api/autocomplete', routes.autocomplete);
 
 app.get('/search', routes.search);
@@ -45,4 +46,10 @@ app.get('*', function(req, res) { res.render('404', { title: 'Errorrrrrrrr'}); }
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
+  api.casAuth(function(error) {
+    if(!error)
+      console.log('Authentication request with CalNet Authentication Service successful');
+    else
+      console.error(error);
+  });
 });
