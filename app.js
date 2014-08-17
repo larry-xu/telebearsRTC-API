@@ -7,7 +7,9 @@ var express = require('express')
   , routes = require('./routes/routes')
   , http = require('http')
   , path = require('path')
-  , api = require('./routes/api');
+  , api = require('./routes/api')
+  , cron = require('cron').CronJob
+  , courses = require('./routes/loadcourses');
 
 var app = express();
 
@@ -52,4 +54,8 @@ http.createServer(app).listen(app.get('port'), function(){
     else
       console.error(error);
   });
+  courses.load();
 });
+
+// load up-to-date course listings every night at 4am PST
+new cron('0 0 4 * * *', courses.load, null, true, "America/Los_Angeles");
